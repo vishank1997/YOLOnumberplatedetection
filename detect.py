@@ -106,6 +106,9 @@ def get_predection(image,net,LABELS,COLORS):
                             nmsthres)
 
     # ensure at least one detection exists
+    v = 0# for the first image i added it #######################
+    im = np.array([np.array(image)])
+
     if len(idxs) > 0:
         # loop over the indexes we are keeping
         for i in idxs.flatten():
@@ -119,8 +122,10 @@ def get_predection(image,net,LABELS,COLORS):
             text = "{}: {:.4f}".format(LABELS[classIDs[i]], confidences[i])
             print(boxes)
             print(classIDs)
-            cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX,0.5, color, 2)
-    return image
+            im = np.asarray(boxes)
+            # im = boxes
+            cv2.putText(image, text, (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+    return image, im
 
 
 def getim():
@@ -131,29 +136,79 @@ def getim():
     while success:
         os.chdir(save_path)
         cv2.imwrite("%d.jpg" % count, image)     # save frame as JPEG file
-        success,image = vidcap.read()
+        success, image = vidcap.read()
         print('Read a new frame: ', success)
         count += 1
-
     print(count)
+
+
+def makevid():
+    import cv2
+    import os
+    import natsort
+
+    image_folder = 'folder1'
+    video_name = 'video.avi'
+
+    images = [img for img in os.listdir(image_folder) if img.endswith(".jpg")]
+    # print(os.listdir(image_folder))
+    # print(images)
+    frame = cv2.imread(os.path.join(image_folder, images[0]))
+    height, width, layers = frame.shape
+    video = cv2.VideoWriter(video_name, 0, 40, (width, height))
+    print(images)
+    # images = sorted(images)
+    images = natsort.natsorted(images)
+    # images.sort(key=lambda f: int(filter(str.isdigit, f)))
+    print(images)
+    for image in images:
+        # print(image)
+        video.write(cv2.imread(os.path.join(image_folder, image)))
+    cv2.destroyAllWindows()
+    video.release()
 
 
 def main():
     # load our input image and grab its spatial dimensions
-    image = cv2.imread("./test1.jpg")
+    ########getim()
     labelsPath="./coco.names"
     cfgpath="./yolov3.cfg"
     wpath="./yolov3.weights"
-    Lables=get_labels(labelsPath)
-    CFG=get_config(cfgpath)
-    Weights=get_weights(wpath)
-    nets=load_model(CFG,Weights)
-    Colors=get_colors(Lables)
-    res=get_predection(image,nets,Lables,Colors)
+    save_path = 'D:\\yolo\\result'
+    image_folder = 'folder1'
+    os.listdir(image_folder)
+    Lables = get_labels(labelsPath)
+    CFG = get_config(cfgpath)
+    Weights = get_weights(wpath)
+    nets = load_model(CFG, Weights)
+    Colors = get_colors(Lables)
+    for img in os.listdir(image_folder):
+        #print("D:\\yolo\\folder1\\" + img)
+        image = cv2.imread("D:\\yolo\\folder1\\"+img)
+        res, im = get_predection(image, nets, Lables, Colors)
+        os.chdir(save_path)
+        for x in range(im.shape[0]):
+            if(im.shape[1]>50):
+                continue
+            a = im[x][0]
+            b = im[x][1]
+            c = im[x][2]
+            d = im[x][3]
+            w = b+d
+            h = a+c
+            print("hello hello")
+            print(a, b, c, d)
+            print(res.shape)
+            print(im.shape[1])
+            #cv2.imshow("IMAGE", res[614:774, 627:794])
+            cv2.imwrite("%s%s.jpg" % (img, str(x)), res[b:w, a:h])
+            #cv2.imwrite("IMAGE", res[b:a, b+d:a+c])# save frame as JPEG file
+            cv2.waitKey()
+    #######makevid()
     # image=cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
     # show the output image
-    cv2.imshow("Image", res)
-    cv2.waitKey()
+    #cv2.imshow("Image", res)
+    #cv2.waitKey()
 
 
 if __name__ == "__main__":
